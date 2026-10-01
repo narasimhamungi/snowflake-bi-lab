@@ -10,9 +10,9 @@ quality-checked in SQL, and surfaced in a **Power BI** report.
 > |---|---|
 > | Export script (`sfbi/export_gold.py`) | Built, tested against real Postgres; 1.4M-row scale test passed (~15 s, 51 MB Parquet) |
 > | SQL (RAW DDL, MODEL views, MART models, 30+ DQ checks, report-control checks) | Built; logic tested end-to-end in **DuckDB**, same files production uses |
-> | Dry run on the real export (`sfbi/dryrun_duckdb.py`: same SQL, DuckDB) | Built and tested; ~3 s at 1.1M rows. **Not yet run on the real export** |
-> | Snowflake loader (`sfbi/load_snowflake.py`) | Written; control flow tested against a recording fake. **Not yet run against a live Snowflake account** |
-> | Live row-count / fingerprint reconciliation Postgres ↔ Snowflake | **Not done** |
+> | Dry run on the real export (`sfbi/dryrun_duckdb.py`: same SQL, DuckDB) | Run on the real export; results identical to the Snowflake run below |
+> | Snowflake load (`sfbi/load_snowflake.py`) | **Run live, 2026-10-01** (Snowflake trial, key-pair auth, run `2ebde46ce4d7`): every SQL statement accepted as written |
+> | Live row-count / fingerprint reconciliation Postgres ↔ Snowflake | **Done:** 6/6 tables, row counts and fingerprints exact (see Results) |
 > | Power BI report, screenshots, PDF | **Not done** (spec in `docs/powerbi_spec.md`) |
 > | CI | Workflow written; **not yet run on GitHub** |
 
@@ -72,14 +72,45 @@ Check the current trial terms and any MFA/auth requirements for your account typ
 
 ## Verified vs unverified
 
-Verified here (DuckDB + real Postgres): export correctness, fingerprint equality across engines, every view's logic against independently computed values (reconciliation counts, returns, rolling volatility, gap handling), every check's ability to fail, report parsing against the two real committed lakehouse reports.
+Verified by tests (DuckDB + real Postgres): export correctness, fingerprint equality across engines, every view's logic against independently computed values (reconciliation counts, returns, rolling volatility, gap handling), every check's ability to fail, report parsing against the two real committed lakehouse reports.
 
-**Unverified against Snowflake — expect to fix on first run:** acceptance of every SQL statement (dialect), `PUT`/`COPY INTO … MATCH_BY_COLUMN_NAME` on these Parquet files (including a zero-row table such as an empty `fact_corporate_action`), key-pair connection, and the `QUALIFY` / window / `MEDIAN` behaviour. Fix and record what changed in `docs/decision_log.md`.
+Verified live on Snowflake (2026-10-01): key-pair connection, `PUT` + `COPY INTO … MATCH_BY_COLUMN_NAME` of all six Parquet files, every RAW/MODEL/MART/DQ statement as written (no dialect changes were needed), exact load verification.
 
-## Results
+**Not yet done:** the Power BI report; matching a lakehouse-published reconciliation report (see "Reconciliation vs the lakehouse's committed report" below).
 
-*Fill after the first live run — numbers must come from the live run, not from this README.*
-Commands that produce them: `SELECT * FROM mart.v_load_latest;` `SELECT status, COUNT(*) FROM mart.v_dq_latest GROUP BY status;` `SELECT * FROM mart.v_recon_summary;`
+## Results (live Snowflake run, 2026-10-01)
+
+Source: the lakehouse gold layer built for `ingest_date=2026-09-07` into a dedicated Postgres database, exported once, loaded once. Every figure below comes from the Snowflake run; screenshots in `docs/img/`.
+
+**Load verification** (`mart.v_load_latest`): 6/6 tables, `rows_expected = rows_loaded` and `fingerprint_match = TRUE` for every table.
+
+| Table | Rows |
+|---|---|
+| `dim_date` | 2,807 |
+| `dim_security` | 503 |
+| `fact_price_daily` | 1,124,133 |
+| `fact_price_daily_consensus` | 935,956 |
+| `fact_corporate_action` | 11,681 |
+| `fact_macro_rate` | 4,024 |
+
+![Snowflake load log](docs/img/snowflake_load_log.png)
+
+**Reconciliation, recomputed in the warehouse** from the two vendors' rows (`mart.v_recon_summary`): 188,177 ticker-date pairs compared across 99 tickers; 8,506 flagged above the 0.5% tolerance (4.52%), concentrated in 9 tickers. Coverage, kept separate from discrepancies: 743,809 yfinance-only rows belong to tickers outside the Tiingo sample (sampling design, not a gap); 110 are genuine date gaps inside sampled tickers; 3,860 rows are Tiingo-only.
+
+![Snowflake reconciliation summary](docs/img/snowflake_recon_summary.png)
+
+**Data-quality checks** (`mart.v_dq_latest`): 30 PASS, 3 WARN, 0 FAIL. The three warnings are real properties of the source data, named by the dry run on the same export:
+
+![Snowflake DQ summary](docs/img/snowflake_dq_summary.png)
+
+
+* `null_price_fields` (1,930 rows): MSFT's Tiingo series has no adjusted open/high/low (stored as NaN in the lakehouse; NULL here, see decision 16).
+* `ohlc_low_le_open` (1 row): HUBB, 2021-05-05, yfinance — the bad print the lakehouse bronze gate also caught.
+* `security_without_prices` (8 tickers): COIN, DXCM, EOG, FSLR, LIN, PAYX, TDY, TFC have no yfinance rows in this partition.
+
+### Reconciliation vs the lakehouse's committed report
+
+The lakehouse's committed `reconciliation_report_2026-09-07.txt` reports 192,037 pairs and 9,094 flagged; this build has 188,177 and 8,506. The difference is accounted for to the pair: AJG and DVN have no yfinance rows in the current 09-07 partition (−3,860 pairs; DVN carried 588 of the flags), and 44 pairs dated after the ingest date exist in silver but are dropped by the lakehouse gold build because its `dim_date` ends at the ingest date. The partitions contain rows dated after 2026-09-07, which suggests they were re-pulled after that report was written. A report regenerated from the same data, and the `--report-file` control checks against it, are still to do.
 
 ## Docs
 
