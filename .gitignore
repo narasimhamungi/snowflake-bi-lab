@@ -1,0 +1,10 @@
+.env
+export/
+*.parquet
+*.pem
+*.p8
+__pycache__/
+.pytest_cache/
+# Power BI files can embed the imported data: commit a .pbix only after checking its size/contents.
+*.pbix
+.venv/

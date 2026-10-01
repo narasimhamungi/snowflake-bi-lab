@@ -1,0 +1,26 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mdl
+          POSTGRES_PASSWORD: mdl_local_dev
+          POSTGRES_DB: marketdata_lakehouse_test      # name must end in _test (tests TRUNCATE)
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mdl" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-test.txt
+      - run: python -m pytest tests -q
+        env:
+          PYTHONPATH: .
+          MDL_DB_HOST: localhost
