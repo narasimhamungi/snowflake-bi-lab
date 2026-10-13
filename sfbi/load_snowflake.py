@@ -8,8 +8,8 @@ export, so a rerun reproduces the same state. The source is a complete
 snapshot export, so MERGE would add complexity without adding correctness
 (see docs/decision_log.md).
 
-STATUS: written and unit-tested against a recording fake; NOT yet executed
-against a live Snowflake account. The first real run is the real test.
+Unit-tested against a recording fake; run live against a Snowflake trial
+account on 2026-10-01 (see README "Results").
 """
 from __future__ import annotations
 

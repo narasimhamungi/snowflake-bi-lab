@@ -5,14 +5,13 @@
 -- subtly wrong). It's derived empirically instead, by the loader, from
 -- whether any security actually has a price row on that date in the
 -- silver data — the data itself is the source of truth for what a
--- trading day was, not a calendar Claude wrote by hand.
+-- trading day was, not a hand-maintained calendar.
 --
 -- dim_security is a real SCD-2: effective_from/effective_to/is_current,
 -- driven by comparing each new constituents snapshot against the current
--- record per ticker. With only one snapshot ingested so far, every row
--- will show effective_to = NULL (nothing to detect a change against yet)
--- — that's correct, not a bug; the history populates as more snapshots
--- are ingested over time.
+-- record per ticker. Built from a single snapshot, every row shows
+-- effective_to = NULL (nothing to detect a change against); history
+-- appears as later dated snapshots are loaded.
 --
 -- fact_price_daily preserves both vendors' data distinctly, at
 -- (security, date, source) grain — this is what the reconciliation

@@ -1,10 +1,12 @@
 # snowflake-bi-lab
 
+[![CI](https://github.com/narasimhamungi/snowflake-bi-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/narasimhamungi/snowflake-bi-lab/actions/workflows/ci.yml)
+
 Cloud-warehouse and BI layer on top of [`marketdata-lakehouse`](https://github.com/narasimhamungi/marketdata-lakehouse):
 the Postgres gold layer is exported, loaded into **Snowflake**, modelled in SQL,
 quality-checked in SQL, and surfaced in a **Power BI** report.
 
-> **Status — read this first.** Keep this block truthful; edit it when each item is done.
+> **Status**
 >
 > | Item | State |
 > |---|---|
@@ -14,7 +16,7 @@ quality-checked in SQL, and surfaced in a **Power BI** report.
 > | Snowflake load (`sfbi/load_snowflake.py`) | **Run live, 2026-10-01** (Snowflake trial, key-pair auth, run `2ebde46ce4d7`): every SQL statement accepted as written |
 > | Live row-count / fingerprint reconciliation Postgres ↔ Snowflake | **Done:** 6/6 tables, row counts and fingerprints exact (see Results) |
 > | Power BI report, screenshots, PDF | **Not done** (spec in `docs/powerbi_spec.md`) |
-> | CI | Workflow written; **not yet run on GitHub** |
+> | CI | GitHub Actions: unit tests plus the Postgres-backed tests against a `postgres:16` service |
 
 ## Problem
 
@@ -76,7 +78,7 @@ Verified by tests (DuckDB + real Postgres): export correctness, fingerprint equa
 
 Verified live on Snowflake (2026-10-01): key-pair connection, `PUT` + `COPY INTO … MATCH_BY_COLUMN_NAME` of all six Parquet files, every RAW/MODEL/MART/DQ statement as written (no dialect changes were needed), exact load verification.
 
-**Not yet done:** the Power BI report; matching a lakehouse-published reconciliation report (see "Reconciliation vs the lakehouse's committed report" below).
+**Not done:** the Power BI report; matching a lakehouse-published reconciliation report (see "Reconciliation vs the lakehouse's committed report" below).
 
 ## Results (live Snowflake run, 2026-10-01)
 
@@ -110,7 +112,7 @@ Source: the lakehouse gold layer built for `ingest_date=2026-09-07` into a dedic
 
 ### Reconciliation vs the lakehouse's committed report
 
-The lakehouse's committed `reconciliation_report_2026-09-07.txt` reports 192,037 pairs and 9,094 flagged; this build has 188,177 and 8,506. The difference is accounted for to the pair: AJG and DVN have no yfinance rows in the current 09-07 partition (−3,860 pairs; DVN carried 588 of the flags), and 44 pairs dated after the ingest date exist in silver but are dropped by the lakehouse gold build because its `dim_date` ends at the ingest date. The partitions contain rows dated after 2026-09-07, which suggests they were re-pulled after that report was written. A report regenerated from the same data, and the `--report-file` control checks against it, are still to do.
+The lakehouse's committed `reconciliation_report_2026-09-07.txt` reports 192,037 pairs and 9,094 flagged; this build has 188,177 and 8,506. The difference is accounted for to the pair: AJG and DVN have no yfinance rows in the current 09-07 partition (−3,860 pairs; DVN carried 588 of the flags), and 44 pairs dated after the ingest date exist in silver but are dropped by the lakehouse gold build because its `dim_date` ends at the ingest date. The partitions contain rows dated after 2026-09-07, which suggests they were re-pulled after that report was written. A report regenerated from the same data, and the `--report-file` control checks against it, are not done.
 
 ## Docs
 

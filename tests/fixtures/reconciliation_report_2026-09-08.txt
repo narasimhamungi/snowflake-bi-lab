@@ -51,10 +51,9 @@ discrepancy between vendors.
 GRMN: single row, 0.1% of history — noise, not investigated further.
 
 Scope note: 34 of 42 successfully-fetched Tiingo tickers had matching
-yfinance silver data to compare against; the other 8 (ABNB, AEE, ALB, BX,
-CASY, DE, DECK, EXE, FOX, FOXA, and others) aren't yet in yfinance's silver
-layer for any date — a full-universe-backfill-in-progress gap, not a
-reconciliation bug. CBOE, COHR, CSGP still fail on Tiingo entirely
-(consistent 404-type failure across two separate days) — needs a live
-investigation with real Tiingo API access, which this environment doesn't
-have.
+yfinance silver data to compare against; the other 8 (BX, CASY, DE, DECK,
+DVN, ED, FOX, FOXA) had no rows in the 2026-09-08 yfinance silver layer
+(370 tickers at that point) — a full-universe-backfill-in-progress gap, not
+a reconciliation bug (ticker list recomputed from the 2026-09-08 silver
+files). CBOE, COHR, CSGP fail on Tiingo entirely (consistent 404-type
+failure across two separate days); not investigated further.
