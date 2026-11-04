@@ -4,7 +4,8 @@
 
 Cloud-warehouse and BI layer on top of [`marketdata-lakehouse`](https://github.com/narasimhamungi/marketdata-lakehouse):
 the Postgres gold layer is exported, loaded into **Snowflake**, modelled in SQL,
-quality-checked in SQL, and surfaced in a **Power BI** report.
+and quality-checked in SQL. A **Power BI** report is specced (`docs/powerbi_spec.md`) but not built —
+see Status below.
 
 > **Status**
 >
@@ -37,7 +38,7 @@ Snowflake  MARKETDATA
    │  sfbi/pipeline.py — verify_load: recompute fingerprints in Snowflake, compare exactly, write mart.load_log
    │                     40_dq_checks.sql → mart.dq_results   50_dq_report_control.sql → vs lakehouse report
    ▼
-Power BI (Import)  3 pages: market overview · reconciliation & data quality · platform health
+Power BI (Import, PLANNED — not built)  3 pages: market overview · reconciliation & data quality · platform health
 ```
 
 ## What is distinctive here
